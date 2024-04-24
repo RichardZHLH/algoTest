@@ -7,6 +7,18 @@ from beaker.lib.storage import BoxMapping, BoxList
 
 import Target
 
+class MessageInfo(abi.NamedTuple):
+    name:         abi.Field[abi.String]
+    smgID:        abi.Field[abi.StaticBytes[Literal[32]]]
+    tokenPairID:  abi.Field[abi.Uint64]
+    fromAccount:  abi.Field[abi.Uint64]
+    value:        abi.Field[abi.Uint64]
+    contractFee:  abi.Field[abi.Uint64]
+    userAccount:  abi.Field[abi.String]
+    txid:         abi.Field[abi.StaticBytes[Literal[32]]]
+
+
+
 class BridgeState:
     storeValue: Final[GlobalStateValue] = GlobalStateValue(
         TealType.bytes,
@@ -40,6 +52,24 @@ def getStore3(*, output: abi.DynamicBytes) ->Expr:
 @app.external()
 def store4(a: abi.Uint64, b: abi.DynamicBytes) -> Expr:
     return app.state.mapStore[a].set(b)
+
+@app.external()
+def setEvent(smgID: abi.StaticBytes[Literal[32]],
+    tokenPairID:  abi.Uint64,
+    fromAccount: abi.Uint64,
+    value: abi.Uint64,
+    contractFee: abi.Uint64,
+    userAccount:  abi.String,
+  ) -> Expr:
+    name = abi.make(abi.String)
+    txid = abi.make(abi.StaticBytes[Literal[32]]) 
+    return Seq(
+      name.set("userLockLogger"),
+      txid.set(Txn.tx_id()),
+      (info := MessageInfo()).set(name, smgID, tokenPairID, fromAccount, value, contractFee,  userAccount, txid),
+      Log(info.encode())
+    )
+
 
 @app.external()
 def callSetCount(app_id: abi.Uint64, a: abi.Uint64) -> Expr:

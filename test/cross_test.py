@@ -4,13 +4,14 @@ from algosdk.abi import ABIType
 from algosdk.atomic_transaction_composer import TransactionWithSigner, AccountTransactionSigner
 from algosdk.encoding import decode_address, encode_address, encode_as_bytes
 from algosdk.transaction import AssetOptInTxn, PaymentTxn, AssetCreateTxn,AssetTransferTxn
-from algosdk import account, transaction,logic, util, mnemonic, v2client
+from algosdk import account, transaction,logic, util, mnemonic, v2client, encoding,abi
 from algosdk.atomic_transaction_composer import (
     AtomicTransactionComposer,
     LogicSigTransactionSigner,
     TransactionWithSigner,
 )
 import beaker
+import base64
 
 import Bridge
 import Target
@@ -68,3 +69,38 @@ def test_cross(app_client, app_client_target, Target_ID):
         foreign_apps=[Target_ID]
     )  
     print("ret:",  ret.return_value)
+
+@pytest.mark.abi
+def test_encode_base32():
+  txidh = bytes.fromhex('5df5236b7bf7cd284cbb67f9108261a00ba37f11f2a5394898d685660adffe3d')
+  txid = encoding._undo_padding(base64.b32encode(txidh).decode())
+   
+  print("txid--------------------:", txid)
+
+@pytest.mark.abi
+def test_abi(app_client):
+  # abi.StaticBytes[Literal[64]]
+
+  # print("xxx:", record_codec)
+  tx = app_client.call(
+      Bridge.setEvent,
+      smgID=bytes.fromhex('000000000000000000000000000000000000000000746573746e65745f303633'),
+      tokenPairID=666, 
+      fromAccount=2233887,
+      value=2000,
+      contractFee=300,
+      userAccount="0x8260fca590c675be800bbcde4a9ed067ead46612e25b33bc9b6f027ef12326e6",
+  )  
+  logs = tx.tx_info['logs'][0]
+  print("logs:",  logs)
+  codec = ABIType.from_string(str(Bridge.MessageInfo().type_spec()))  #(uint64, string, uing64)
+  logb = base64.b64decode(logs)
+  loga = codec.decode(logb)
+  print("logs:", loga)
+  smgIDn =  ''.join(format(x, '02x') for x in  loga[1]) 
+  print("smgIDn:", smgIDn)
+  txida = loga[7]
+  txhdh = ''.join(format(x, '02x') for x in txida)
+  txid = encoding._undo_padding(base64.b32encode(bytes.fromhex(txhdh)).decode())
+  print("txid:", txid)
+

@@ -104,3 +104,20 @@ def test_abi(app_client):
   txid = encoding._undo_padding(base64.b32encode(bytes.fromhex(txhdh)).decode())
   print("txid:", txid)
 
+@pytest.mark.encode
+def test_encode(app_client):
+  codec = abi.ABIType.from_string("(uint64,string)")
+
+  info = app_client.call( Bridge.encodeTupple)  
+  print("info:", info.return_value)
+  bret = ''.join(format(x, '02x') for x in info.return_value)
+  decoded = codec.decode(bytes.fromhex(bret))    
+  print("decoded:", decoded)
+
+  encoded = codec.encode([100, "aaa"])
+  print("python encoded:", encoded.hex())
+
+  info = app_client.call( Bridge.getMessageInfo)  
+  print("getMessageInfo:", info.return_value)
+
+  

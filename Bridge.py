@@ -102,3 +102,25 @@ def callAdd(app_id: abi.Uint64,a: abi.Uint64, *, output: abi.Uint64) -> Expr:
     ),
     output.set(Btoi(pt.Extract(InnerTxn.last_log(), pt.Int(4), pt.Int(8))))
   )
+
+
+@app.external()
+def encodeTupple(*, output: abi.DynamicBytes) -> Expr:
+  a = abi.make(abi.Uint64)
+  b = abi.make(abi.String)
+  return Seq(
+    a.set(Int(100)),
+    b.set(Bytes("aaa")),
+    output.set(pt.ast.abi.tuple._encode_tuple((a, b)))
+  )    
+@app.external()
+def getMessageInfo(*, output: MessageInfo) -> Expr:  
+  name = abi.make(abi.String)
+  txid = abi.make(abi.StaticBytes[Literal[32]]) 
+  a = abi.make(abi.Uint64)
+  return Seq(
+      name.set("userLockLogger"),
+      a.set(Int(100)),
+      txid.set(Txn.tx_id()),
+      output.set(name, txid, a, a, a, a,  name, txid),
+  )

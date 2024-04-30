@@ -2,7 +2,7 @@ import os
 import math
 from algosdk.abi import ABIType
 from algosdk.atomic_transaction_composer import TransactionWithSigner, AccountTransactionSigner
-from algosdk.encoding import decode_address, encode_address, encode_as_bytes
+from algosdk.encoding import decode_address, encode_address, encode_as_bytes, _correct_padding
 from algosdk.transaction import AssetOptInTxn, PaymentTxn, AssetCreateTxn,AssetTransferTxn
 from algosdk import account, transaction,logic, util, mnemonic, v2client, encoding,abi
 from algosdk.atomic_transaction_composer import (
@@ -70,12 +70,16 @@ def test_cross(app_client, app_client_target, Target_ID):
     )  
     print("ret:",  ret.return_value)
 
-@pytest.mark.abi
+@pytest.mark.abi2
 def test_encode_base32():
-  txidh = bytes.fromhex('5df5236b7bf7cd284cbb67f9108261a00ba37f11f2a5394898d685660adffe3d')
-  txid = encoding._undo_padding(base64.b32encode(txidh).decode())
-   
-  print("txid--------------------:", txid)
+    txidhex = '5df5236b7bf7cd284cbb67f9108261a00ba37f11f2a5394898d685660adffe3d'
+    txidh = bytes.fromhex(txidhex)
+    txid = encoding._undo_padding(base64.b32encode(txidh).decode())
+    
+    print("txid--------------------:", txid)
+    r = base64.b32decode(_correct_padding(txid))
+    print("r:", r.hex())
+    assert r.hex() == txidhex
 
 @pytest.mark.abi
 def test_abi(app_client):
@@ -93,15 +97,16 @@ def test_abi(app_client):
   )  
   logs = tx.tx_info['logs'][0]
   print("logs:",  logs)
+  print("type_spec:", str(Bridge.MessageInfo().type_spec()))
   codec = ABIType.from_string(str(Bridge.MessageInfo().type_spec()))  #(uint64, string, uing64)
   logb = base64.b64decode(logs)
   loga = codec.decode(logb)
   print("logs:", loga)
-  smgIDn =  ''.join(format(x, '02x') for x in  loga[1]) 
+  smgIDn =  bytes(bytearray(loga[1])).hex()
   print("smgIDn:", smgIDn)
   txida = loga[7]
-  txhdh = ''.join(format(x, '02x') for x in txida)
-  txid = encoding._undo_padding(base64.b32encode(bytes.fromhex(txhdh)).decode())
+  txhdb =   bytes(bytearray(txida))
+  txid = encoding._undo_padding(base64.b32encode(txhdb).decode())
   print("txid:", txid)
 
 @pytest.mark.encode
